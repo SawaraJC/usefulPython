@@ -1,0 +1,57 @@
+from asyncio.windows_utils import BUFSIZE
+from socket import AF_INET, SOCK_STREAM, socket 
+from threading import Thread 
+
+clients={}
+addresses={}
+
+HOST='127.0.0.1'
+PORT=1060
+BUFFSIZE=1024
+
+server= socket(AF_INET, SOCK_STREAM)
+
+server.bind((HOST,PORT))
+
+def broadcast(msg,prefix = ""):
+    for client in clients:
+        client.send(bytes(prefix,'utf8')+msg)
+
+
+def handleClient ():
+    name = client.recv(BUFFSIZE).decode("utf8")
+    client.send(bytes("Welcome %s, type 'exit' to exit the chat" % name,'utf8'))
+    msg = '%s has joined the chat' % name
+    broadcast(bytes(msg, 'utf8'))
+    clients[client] = name
+    while True:
+        msg = client.recv(BUFFSIZE)
+        if msg != bytes("'exit'", "utf8"):
+            broadcast(msg, name+": ")
+        else:
+            client.send(bytes("'exit'", "utf8"))
+            client.close()
+            del clients[client]
+            broadcast(bytes("%s has left the chat." % name, "utf8"))
+            break
+
+
+def accept_conn():
+    while True:
+        client, clientaddress= server.accept()
+        print('%s:%s has connected' % clientaddress)
+
+        client.send(bytes("Welcome to ChatRoom, type your name and press enter!", "utf8"))
+        addresses[client] = clientaddress
+        Thread(target=handleClient, args=(client,)).start()
+
+if __name__ == "__main__":
+    server.listen(5)  # Listens for 5 connections at max.
+    print("Waiting for a new connection...")
+    ACCEPT_THREAD = Thread(target=accept_conn)
+    ACCEPT_THREAD.start()  # Starts the infinite loop.
+    ACCEPT_THREAD.join()
+    server.close()
+
+
+print("server working")
